@@ -1,11 +1,10 @@
 {
-	"id": "obsidian-global-proxy",
-	"name": "Obsidian Global Proxy",
-	"version": "0.1.0",
+	"id": "global-proxy",
+	"name": "Global Proxy",
+	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Make Obsidian supports network proxy",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"author": "windingblack",
+	"authorUrl": "https://github.com/windingblack",
 	"isDesktopOnly": true
 }
