@@ -1,9 +1,9 @@
 {
 	"id": "global-proxy",
 	"name": "Global Proxy",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Make Obsidian supports network proxy",
+	"description": "Use network proxy in Obsidian according to the rules configured in this plugin.",
 	"author": "windingblack",
 	"authorUrl": "https://github.com/windingblack",
 	"isDesktopOnly": true
