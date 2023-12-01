@@ -3,8 +3,9 @@
 	"name": "Global Proxy",
 	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Use network proxy in Obsidian according to the rules configured in this plugin.",
+	"description": "Use network proxy throughout Obsidian according to the rules configured in this plugin.",
 	"author": "windingblack",
+	"fundingUrl": "https://www.buymeacoffee.com/windingblack",
 	"authorUrl": "https://github.com/windingblack",
 	"isDesktopOnly": true
 }
