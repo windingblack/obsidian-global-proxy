@@ -4,7 +4,7 @@ Global Proxy is an Obsidian plugin that makes it easy to configure network proxi
 
 ### How to Use
 
-Fill in the input boxes with the corresponding proxy address. If all the proxies are invalid, all links will be direct without using a proxy. If both socks and http/https proxies are set, they may be used.
+Fill in the input boxes with the corresponding proxy address. If all the proxies are invalid, all requests will be direct without using a proxy. If both socks and http/https proxies are set, they may be used.
 
 ![Setting Tab](assets/SettingTab.png)
 
