@@ -5,7 +5,8 @@ const DEFAULT_SETTINGS = {
     httpProxy: "",
 	httpsProxy: "",
 	socksProxy: "",
-	bypassProxy: ""
+	bypassRules: "<local>,127.*,10.*,172.16.*,172.17.*,172.18.*,172.19.*,172.20.*,172.21.*,172.22.*,172.23.*,172.24.*,172.25.*,172.26.*,172.27.*,172.28.*,172.29.*,172.30.*,172.31.*,192.168.*",
+	pluginTokens: "persist:surfing-vault-${appId}"
 };
 
 var GlobalProxyPlugin = class extends import_obsidian.Plugin {
@@ -17,6 +18,7 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	this.sessionMap = {}
 	this.setGlobalProxy();
   }
   async saveSettings() {
@@ -24,8 +26,25 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
   }
   
   async setGlobalProxy() {
+	  let sessions = []
 	  if (this.settings.enableProxy) {
-			let proxyRules;
+			this.sessionMap.default = electron.remote.session.defaultSession
+			sessions.push(this.sessionMap.default)
+			  
+			if (!!this.settings.pluginTokens) {
+				let pluginTokens = this.settings.pluginTokens.split("\n");
+				for (var i = 0; i < pluginTokens.length; i++) {
+					if (!pluginTokens[i]) {
+						continue;
+					}
+					let token = pluginTokens[i].replace("${appId}", this.app.appId)
+					let session = await electron.remote.session.fromPartition(token)
+					sessions.push(session)
+					this.sessionMap[token] = session
+				}
+			}
+			
+			let proxyRules, proxyBypassRules = this.settings.bypassRules;
 			try {
 			  proxyRules = this.composeProxyRules();
 			} catch(ex) {
@@ -34,7 +53,11 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 			}
 			
 			try {
-				await electron.remote.session.defaultSession.setProxy({ proxyRules: proxyRules, proxyBypassRules: this.settings.bypassProxy }); 
+				for (var i = 0; i < sessions.length; i++) {
+					await sessions[i].setProxy({ proxyRules, proxyBypassRules }); 
+					//await sessions[i].closeAllConnections();
+				}
+
 				new import_obsidian.Notice('Global proxy set successfully');
 			} catch (ex) {
 				new import_obsidian.Notice('Global proxy set failed');
@@ -42,9 +65,14 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 			}
 	  } else {
 			try {
-				const session = electron.remote.session.defaultSession
-				await session.setProxy({});
-				await session.closeAllConnections();
+				for (const key in this.sessionMap) {
+					sessions.push(this.sessionMap[key])
+				}
+				
+				for (var i = 0; i < sessions.length; i++) {
+					await sessions[i].setProxy({});
+					await sessions[i].closeAllConnections();
+				}
 				new import_obsidian.Notice('Disable global proxy');
 			} catch (ex) {
 				new import_obsidian.Notice('Disable global proxy failed');
@@ -64,7 +92,7 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 		} else if (!!httpsProxy) {
 			return this.settings.httpsProxy + ",direct://"
 		} else {
-			throw new Error("No valid proxy")
+			throw new Error("No valid proxies")
 		}
 	}
 };
@@ -115,22 +143,32 @@ var GlobalProxySettingTab = class extends import_obsidian.PluginSettingTab {
 	  this.refreshProxy("httpsProxy", value);      
     }));
 	new import_obsidian.Setting(containerEl)
-	.setName("Bypass List")
-	.setDesc("Set up your bypass list")
-	.addText((text) => text
-	.setPlaceholder("<scheme>://<host>:<port>")
-	.setValue(this.plugin.settings.bypassProxy)
+	.setName("Plugin Tokens")
+	.setDesc("For proxy specified plugins")
+	.addTextArea((text) => text
+	.setValue(this.plugin.settings.pluginTokens)
 	.onChange((value) => {
-	  this.refreshProxy("bypassProxy", value);      
+	  this.refreshProxy("pluginTokens", value);  
+    }));
+	new import_obsidian.Setting(containerEl)
+	.setName("Blacklist")
+	.setDesc("Proxy blacklist")
+	.addTextArea((text) => text
+	.setPlaceholder("[URL_SCHEME://] HOSTNAME_PATTERN [:<port>]\n. HOSTNAME_SUFFIX_PATTERN [:PORT]\n[SCHEME://] IP_LITERAL [:PORT]\nIP_LITERAL / PREFIX_LENGTH_IN_BITS\n<local>")
+	.setValue(this.plugin.settings.bypassRules)
+	.onChange((value) => {
+	  this.refreshProxy("bypassRules", value);      
     }));
   }
   async refreshProxy(key, value) {
-	  if (isValidFormat(value) || key == 'bypassProxy') {
-		this.plugin.settings[key] = value;
-		await this.plugin.saveSettings();
-		this.plugin.setGlobalProxy(); 
+	  if ((key == "socksProxy" || key == "httpProxy" || key == "httpsProxy") && !isValidFormat(value)) {
+		  return
 	  }
-  }	
+	  
+	  this.plugin.settings[key] = value;
+	  await this.plugin.saveSettings();
+	  this.plugin.setGlobalProxy(); 
+  }
 };
 
 
