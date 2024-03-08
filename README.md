@@ -5,7 +5,7 @@ Global Proxy is an Obsidian plugin that makes it easy to configure network proxi
 ## How to Use
 
 * Fill in the input boxes with the corresponding proxy address. If all the proxies are invalid, all requests will be direct without using a proxy. If both socks and http/https proxies are set, they may be used. The plugin will use the socks proxy first, and if it fails, it will use the http/https proxy. If the http/https proxy fails, the request will be direct. 
-* A few plugins will maintain their own network connections that do not use the default Obsidian session, so their traffic won't be proxied. However you can declare a [Plugin Token](#plugin-token) to proxy the network traffic of one of these plugins.
+* A few plugins will maintain their own network connections that do not use the default session of Obsidian, so their traffic won't be proxied. However you can declare a [Plugin Token](#plugin-token) to proxy the network traffic of one of these plugins.
 * If blacklist is set, the plugin will not use the proxy for the specified URLs. The bypass list is a comma separated list of rules. The rules are described in the [Blacklist](#blacklist) section.
 
 ![Setting Tab](assets/SettingTab.png)
