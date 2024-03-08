@@ -4,7 +4,8 @@ const DEFAULT_SETTINGS = {
     enableProxy: false,
     httpProxy: "",
 	httpsProxy: "",
-	socksProxy: ""
+	socksProxy: "",
+	bypassProxy: ""
 };
 
 var GlobalProxyPlugin = class extends import_obsidian.Plugin {
@@ -33,7 +34,7 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 			}
 			
 			try {
-				await electron.remote.session.defaultSession.setProxy({ proxyRules }); 
+				await electron.remote.session.defaultSession.setProxy({ proxyRules: proxyRules, proxyBypassRules: this.settings.bypassProxy }); 
 				new import_obsidian.Notice('Global proxy set successfully');
 			} catch (ex) {
 				new import_obsidian.Notice('Global proxy set failed');
@@ -113,9 +114,18 @@ var GlobalProxySettingTab = class extends import_obsidian.PluginSettingTab {
 	.onChange((value) => {
 	  this.refreshProxy("httpsProxy", value);      
     }));
+	new import_obsidian.Setting(containerEl)
+	.setName("Bypass List")
+	.setDesc("Set up your bypass list")
+	.addText((text) => text
+	.setPlaceholder("<scheme>://<host>:<port>")
+	.setValue(this.plugin.settings.bypassProxy)
+	.onChange((value) => {
+	  this.refreshProxy("bypassProxy", value);      
+    }));
   }
   async refreshProxy(key, value) {
-	  if (isValidFormat(value)) {
+	  if (isValidFormat(value) || key == 'bypassProxy') {
 		this.plugin.settings[key] = value;
 		await this.plugin.saveSettings();
 		this.plugin.setGlobalProxy(); 
