@@ -19,69 +19,68 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	this.sessionMap = {}
-	this.setGlobalProxy();
+	this.enableProxy();
   }
   async saveSettings() {
     await this.saveData(this.settings);
   }
   
-  async setGlobalProxy() {
-	  let sessions = []
-	  if (this.settings.enableProxy) {
-			this.sessionMap.default = electron.remote.session.defaultSession
-			sessions.push(this.sessionMap.default)
-			  
-			if (!!this.settings.pluginTokens) {
-				let pluginTokens = this.settings.pluginTokens.split("\n");
-				for (var i = 0; i < pluginTokens.length; i++) {
-					if (!pluginTokens[i]) {
-						continue;
-					}
-					let token = pluginTokens[i].replace("${appId}", this.app.appId)
-					let session = await electron.remote.session.fromPartition(token)
-					sessions.push(session)
-					this.sessionMap[token] = session
+  async enableProxy() {
+		if (!this.settings.enableProxy) {
+			return;
+		}
+	  
+		let sessions = []
+		this.sessionMap.default = electron.remote.session.defaultSession
+		sessions.push(this.sessionMap.default)
+		  
+		if (!!this.settings.pluginTokens) {
+			let pluginTokens = this.settings.pluginTokens.split("\n");
+			for (var i = 0; i < pluginTokens.length; i++) {
+				if (!pluginTokens[i]) {
+					continue;
 				}
+				let token = pluginTokens[i].replace("${appId}", this.app.appId)
+				let session = await electron.remote.session.fromPartition(token)
+				sessions.push(session)
+				this.sessionMap[token] = session
 			}
-			
-			let proxyRules, proxyBypassRules = this.settings.bypassRules;
-			try {
-			  proxyRules = this.composeProxyRules();
-			} catch(ex) {
-				new import_obsidian.Notice(ex.message);
-				return;
-			}
-			
-			try {
-				for (var i = 0; i < sessions.length; i++) {
-					await sessions[i].setProxy({ proxyRules, proxyBypassRules }); 
-					//await sessions[i].closeAllConnections();
-				}
+		}
 
-				new import_obsidian.Notice('Global proxy set successfully');
-			} catch (ex) {
-				new import_obsidian.Notice('Global proxy set failed');
-				console.error(ex.message);
-			}
-	  } else {
-			try {
-				for (const key in this.sessionMap) {
-					sessions.push(this.sessionMap[key])
-				}
-				
-				for (var i = 0; i < sessions.length; i++) {
-					await sessions[i].setProxy({});
-					await sessions[i].closeAllConnections();
-				}
-				new import_obsidian.Notice('Disable global proxy');
-			} catch (ex) {
-				new import_obsidian.Notice('Disable global proxy failed');
-				console.error(ex.message);
-			}
-	  }
+		let proxyRules = this.composeProxyRules(), 
+			proxyBypassRules = proxyRules ? this.settings.bypassRules : undefined;
+
+		for (var i = 0; i < sessions.length; i++) {
+			await sessions[i].setProxy({ proxyRules, proxyBypassRules }); 
+		}
+
+		if (proxyRules) {
+			new import_obsidian.Notice('Enable proxy!');
+		}
 	}
 	
+	
+	async disableProxy() {
+		let sessions = []
+		for (const key in this.sessionMap) {
+			sessions.push(this.sessionMap[key])
+		}
+				
+		for (var i = 0; i < sessions.length; i++) {
+			await sessions[i].setProxy({});
+			await sessions[i].closeAllConnections();
+		}
+		new import_obsidian.Notice('Disable proxy!');
+	}
+	
+	
 	composeProxyRules() {
+		if (!["socksProxy", "httpProxy", "httpsProxy"].
+			map((p) => !this.settings[p] || isValidFormat(this.settings[p])).reduce((res, check)=>{return res && check}, true)) {
+			return undefined;
+		}
+		
+		
 		const httpProxy= isValidFormat(this.settings.httpProxy) ? ";http=" + this.settings.httpProxy : "";
 		const httpsProxy= isValidFormat(this.settings.httpsProxy) ? ";https=" + this.settings.httpsProxy : "";
 		if (isValidFormat(this.settings.socksProxy)) {
@@ -91,9 +90,9 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 				: this.settings.httpProxy + ",direct://"
 		} else if (!!httpsProxy) {
 			return this.settings.httpsProxy + ",direct://"
-		} else {
-			throw new Error("No valid proxies")
 		}
+		
+		return undefined;
 	}
 };
 
@@ -113,7 +112,7 @@ var GlobalProxySettingTab = class extends import_obsidian.PluginSettingTab {
 	.onChange(async (value) =>  {
 		this.plugin.settings.enableProxy = value;
 		await this.plugin.saveSettings();
-		this.plugin.setGlobalProxy();
+		value ? this.plugin.enableProxy() : this.plugin.disableProxy();
     }));
 	new import_obsidian.Setting(containerEl)
 	.setName("Socks Proxy")
@@ -161,13 +160,10 @@ var GlobalProxySettingTab = class extends import_obsidian.PluginSettingTab {
     }));
   }
   async refreshProxy(key, value) {
-	  if ((key == "socksProxy" || key == "httpProxy" || key == "httpsProxy") && !isValidFormat(value)) {
-		  return
-	  }
-	  
 	  this.plugin.settings[key] = value;
-	  await this.plugin.saveSettings();
-	  this.plugin.setGlobalProxy(); 
+	  this.plugin.saveSettings();
+	  
+	  this.plugin.enableProxy(); 
   }
 };
 
