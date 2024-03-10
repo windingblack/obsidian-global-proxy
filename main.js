@@ -14,8 +14,11 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
     await this.loadSettings();
     this.addSettingTab(new GlobalProxySettingTab(this.app, this));
   }
-  onunload() {
+  
+  async onunload() {
+    this.disableProxy()
   }
+  
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	this.sessionMap = {}
