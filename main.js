@@ -13,10 +13,76 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new GlobalProxySettingTab(this.app, this));
+    
+    this.addCommand({
+      id: 'toggle-global-proxy',
+      name: 'Toggle global proxy',
+      callback: async () => {
+        this.settings.enableProxy = !this.settings.enableProxy;
+        await this.saveSettings();
+        this.settings.enableProxy ? this.enableProxy() : this.disableProxy();
+        this.updateStatusBar();
+      }
+    });
+
+    this.addCommand({
+      id: 'enable-global-proxy',
+      name: 'Enable global proxy',
+      callback: async () => {
+        if (!this.settings.enableProxy) {
+          this.settings.enableProxy = true;
+          await this.saveSettings();
+          this.enableProxy();
+          this.updateStatusBar();
+        }
+      }
+    });
+
+    this.addCommand({
+      id: 'disable-global-proxy',
+      name: 'Disable global proxy',
+      callback: async () => {
+        if (this.settings.enableProxy) {
+          this.settings.enableProxy = false;
+          await this.saveSettings();
+          this.disableProxy();
+          this.updateStatusBar();
+        }
+      }
+    });
+
+    this.statusBarItem = this.addStatusBarItem();
+    this.statusBarItem.addClass('proxy-status');
+    
+    this.registerDomEvent(this.statusBarItem, 'click', async () => {
+      this.settings.enableProxy = !this.settings.enableProxy;
+      await this.saveSettings();
+      this.settings.enableProxy ? this.enableProxy() : this.disableProxy();
+      this.updateStatusBar();
+    });
+    
+    this.updateStatusBar();
+  }
+  
+  updateStatusBar() {
+    if (!this.statusBarItem) return;
+    
+    if (this.settings.enableProxy) {
+      this.statusBarItem.setText('🌐 Proxy: ON');
+      this.statusBarItem.addClass('proxy-enabled');
+      this.statusBarItem.removeClass('proxy-disabled');
+    } else {
+      this.statusBarItem.setText('🌐 Proxy: OFF');
+      this.statusBarItem.addClass('proxy-disabled');
+      this.statusBarItem.removeClass('proxy-enabled');
+    }
   }
   
   async onunload() {
-    this.disableProxy()
+    this.disableProxy();
+    if (this.statusBarItem) {
+      this.statusBarItem.remove();
+    }
   }
   
   async loadSettings() {
@@ -60,6 +126,8 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 		if (proxyRules) {
 			new import_obsidian.Notice('Enable proxy!');
 		}
+    
+    this.updateStatusBar();
 	}
 	
 	
@@ -74,6 +142,8 @@ var GlobalProxyPlugin = class extends import_obsidian.Plugin {
 			await sessions[i].closeAllConnections();
 		}
 		new import_obsidian.Notice('Disable proxy!');
+    
+    this.updateStatusBar();
 	}
 	
 	

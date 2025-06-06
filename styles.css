@@ -1,0 +1,23 @@
+.proxy-status {
+  cursor: pointer;
+  padding: 0 8px;
+  transition: background-color 0.2s ease;
+}
+
+.proxy-status:hover {
+  background-color: var(--interactive-hover);
+  border-radius: 4px;
+}
+
+.proxy-enabled {
+  color: var(--text-success);
+  font-weight: bold;
+}
+
+.proxy-disabled {
+  color: var(--text-muted);
+}
+
+.proxy-enabled:hover, .proxy-disabled:hover {
+  text-decoration: underline;
+} 
